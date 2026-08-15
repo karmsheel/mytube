@@ -8,6 +8,7 @@ pub mod ffmpeg;
 pub mod models;
 pub mod catalog;
 pub mod resume;
+pub mod scan;
 
 #[tauri::command]
 fn greet(name: &str) -> String {
