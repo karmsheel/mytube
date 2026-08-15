@@ -6,6 +6,19 @@ import { VideoCard } from "../components/VideoCard";
 import { resumePosition } from "../lib/format";
 import type { VideoCard as Card, VideoDetail } from "../types";
 
+/** Tauri 2 serializes AppError::NotFound as `{ NotFound: path }`, not a string. */
+function isNotFoundError(e: unknown): boolean {
+  if (e != null && typeof e === "object" && "NotFound" in e) return true;
+  if (typeof e === "string") {
+    return e.toLowerCase().includes("not found") || e.includes("NotFound");
+  }
+  try {
+    return JSON.stringify(e).includes("NotFound");
+  } catch {
+    return false;
+  }
+}
+
 export function WatchPage() {
   const { id } = useParams();
   const vid = Number(id);
@@ -39,9 +52,8 @@ export function WatchPage() {
         if (!cancelled) setMore(extra);
       } catch (e) {
         if (cancelled) return;
-        const msg = String(e);
         setBanner(
-          msg.toLowerCase().includes("not found") || msg.includes("NotFound")
+          isNotFoundError(e)
             ? "File not found. Rescan from Library."
             : "Can't play this format",
         );
