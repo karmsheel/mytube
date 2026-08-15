@@ -3,6 +3,8 @@ pub mod error;
 pub mod pathutil;
 pub mod slug;
 pub mod db;
+pub mod metadata;
+pub mod ffmpeg;
 
 #[tauri::command]
 fn greet(name: &str) -> String {
