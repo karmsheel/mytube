@@ -615,4 +615,27 @@ mod tests {
         assert_eq!(home.items[2].title, "NoDate");
         assert_eq!(home.page_size, 24);
     }
+
+    #[test]
+    fn history_and_progress_roundtrip() {
+        let conn = mem();
+        let (_sid, vid) = seed_one(&conn);
+        set_progress(&conn, vid, 33.0).unwrap();
+        start_watch(&conn, vid).unwrap();
+        let d = get_video(&conn, vid).unwrap();
+        assert_eq!(d.progress_sec, Some(33.0));
+        let h = list_history(&conn, 0).unwrap();
+        assert_eq!(h.items[0].id, vid);
+    }
+
+    #[test]
+    fn remove_source_clears_progress_and_history() {
+        let conn = mem();
+        let (sid, vid) = seed_one(&conn);
+        set_progress(&conn, vid, 10.0).unwrap();
+        start_watch(&conn, vid).unwrap();
+        remove_source(&conn, sid).unwrap();
+        assert!(get_video(&conn, vid).is_err());
+        assert_eq!(list_history(&conn, 0).unwrap().total, 0);
+    }
 }
