@@ -5,6 +5,8 @@ pub mod slug;
 pub mod db;
 pub mod metadata;
 pub mod ffmpeg;
+pub mod models;
+pub mod catalog;
 
 #[tauri::command]
 fn greet(name: &str) -> String {
