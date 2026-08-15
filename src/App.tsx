@@ -1,51 +1,29 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
+import { useEffect } from "react";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { api } from "./api";
+import { Shell } from "./components/Shell";
+import { HomePage } from "./pages/HomePage";
+import { HistoryPage } from "./pages/HistoryPage";
+import { ChannelsPage } from "./pages/ChannelsPage";
+import { ChannelPage } from "./pages/ChannelPage";
+import { WatchPage } from "./pages/WatchPage";
+import { LibraryPage } from "./pages/LibraryPage";
 
-function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
-
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
-
+export default function App() {
+  useEffect(() => { api.rescan().catch(() => {}); }, []);
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
+    <BrowserRouter>
+      <Routes>
+        <Route element={<Shell />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/history" element={<HistoryPage />} />
+          <Route path="/channels" element={<ChannelsPage />} />
+          <Route path="/channel/:slug" element={<ChannelPage />} />
+          <Route path="/watch/:id" element={<WatchPage />} />
+          <Route path="/library" element={<LibraryPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }
-
-export default App;
