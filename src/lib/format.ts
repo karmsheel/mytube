@@ -12,3 +12,11 @@ export function letterTile(title: string): string {
   const c = title.trim().charAt(0);
   return c ? c.toUpperCase() : "?";
 }
+
+export function resumePosition(positionSec: number, durationSec?: number | null): number {
+  if (!Number.isFinite(positionSec) || positionSec < 5) return 0;
+  if (durationSec != null && Number.isFinite(durationSec)) {
+    if (positionSec > durationSec || positionSec > durationSec - 10) return 0;
+  }
+  return positionSec;
+}
