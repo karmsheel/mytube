@@ -2,6 +2,7 @@
 pub mod error;
 pub mod pathutil;
 pub mod slug;
+pub mod db;
 
 #[tauri::command]
 fn greet(name: &str) -> String {
