@@ -40,7 +40,12 @@ pub fn is_video_file(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
-pub fn resolve(video_path: &Path, source_root: &Path, thumbs_dir: &Path) -> ResolvedMeta {
+pub fn resolve(
+    video_path: &Path,
+    source_root: &Path,
+    thumbs_dir: &Path,
+    ffmpeg: Option<&Ffmpeg>,
+) -> ResolvedMeta {
     let stem = video_path
         .file_stem()
         .map(|s| s.to_string_lossy().into_owned())
@@ -83,7 +88,7 @@ pub fn resolve(video_path: &Path, source_root: &Path, thumbs_dir: &Path) -> Reso
     }
 
     if meta.duration_sec.is_none() || meta.thumbnail_path.is_none() {
-        if let Some(ff) = Ffmpeg::detect() {
+        if let Some(ff) = ffmpeg {
             if meta.duration_sec.is_none() {
                 meta.duration_sec = ff.duration(video_path);
             }
@@ -171,7 +176,7 @@ mod tests {
         .unwrap();
         let thumbs = root.join("thumbs");
         fs::create_dir_all(&thumbs).unwrap();
-        let m = resolve(&vid, &root, &thumbs);
+        let m = resolve(&vid, &root, &thumbs, None);
         assert_eq!(m.title, "Real Title");
         assert_eq!(m.channel_name.as_deref(), Some("Veritasium"));
         assert_eq!(m.description.as_deref(), Some("Desc"));
@@ -187,7 +192,7 @@ mod tests {
         fs::create_dir_all(vid.parent().unwrap()).unwrap();
         fs::write(&vid, b"x").unwrap();
         fs::write(root.join("Veritasium").join("My Video.info.json"), b"{not json").unwrap();
-        let m = resolve(&vid, &root, &root.join("t"));
+        let m = resolve(&vid, &root, &root.join("t"), None);
         assert_eq!(m.title, "My Video");
         assert_eq!(m.channel_name.as_deref(), Some("Veritasium"));
     }
@@ -197,7 +202,7 @@ mod tests {
         let root = tmp();
         let vid = root.join("lone.webm");
         fs::write(&vid, b"x").unwrap();
-        let m = resolve(&vid, &root, &root.join("t"));
+        let m = resolve(&vid, &root, &root.join("t"), None);
         assert_eq!(m.title, "lone");
         assert_eq!(m.channel_name, None);
     }
@@ -208,7 +213,7 @@ mod tests {
         let vid = root.join("Channel").join("2024").join("x.mkv");
         fs::create_dir_all(vid.parent().unwrap()).unwrap();
         fs::write(&vid, b"x").unwrap();
-        let m = resolve(&vid, &root, &root.join("t"));
+        let m = resolve(&vid, &root, &root.join("t"), None);
         assert_eq!(m.channel_name.as_deref(), Some("Channel"));
     }
 
@@ -220,7 +225,7 @@ mod tests {
         fs::write(root.join("a.png"), b"p").unwrap();
         fs::write(root.join("a.jpg"), b"j").unwrap();
         fs::write(root.join("a.webp"), b"w").unwrap();
-        let m = resolve(&vid, &root, &root.join("t"));
+        let m = resolve(&vid, &root, &root.join("t"), None);
         assert_eq!(
             m.thumbnail_path.unwrap().file_name().unwrap(),
             "a.webp"
@@ -237,7 +242,7 @@ mod tests {
             r#"{"title":"T","uploader":"U"}"#,
         )
         .unwrap();
-        let m = resolve(&vid, &root, &root.join("t"));
+        let m = resolve(&vid, &root, &root.join("t"), None);
         assert_eq!(m.channel_name.as_deref(), Some("U"));
     }
 

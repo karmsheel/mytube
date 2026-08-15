@@ -101,7 +101,9 @@ pub fn get_channel(state: State<AppState>, slug: String, page: i64) -> AppResult
 #[tauri::command]
 pub fn get_video(state: State<AppState>, id: i64) -> AppResult<VideoDetail> {
     let db = lock(&state)?;
-    catalog::get_video(&db, id)
+    let mut v = catalog::get_video(&db, id)?;
+    v.path = crate::pathutil::display_path(std::path::Path::new(&v.path));
+    Ok(v)
 }
 
 #[tauri::command]
@@ -114,10 +116,11 @@ pub fn list_more(state: State<AppState>, video_id: i64) -> AppResult<Vec<VideoCa
 pub fn video_url(state: State<AppState>, id: i64) -> AppResult<String> {
     let db = lock(&state)?;
     let v = catalog::get_video(&db, id)?;
-    if !std::path::Path::new(&v.path).is_file() {
+    let p = std::path::Path::new(&v.path);
+    if !p.is_file() {
         return Err(AppError::NotFound(v.path));
     }
-    Ok(v.path)
+    Ok(crate::pathutil::display_path(p))
 }
 
 #[tauri::command]

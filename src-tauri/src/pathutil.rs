@@ -48,7 +48,7 @@ fn lex_normalize(path: &Path) -> PathBuf {
     out
 }
 
-fn strip_verbatim_prefix(path: &Path) -> PathBuf {
+pub fn strip_verbatim_prefix(path: &Path) -> PathBuf {
     let s = path.to_string_lossy();
     if let Some(rest) = s.strip_prefix(r"\\?\UNC\") {
         PathBuf::from(format!(r"\\{rest}"))
@@ -59,9 +59,13 @@ fn strip_verbatim_prefix(path: &Path) -> PathBuf {
     }
 }
 
+pub fn display_path(path: &Path) -> String {
+    strip_verbatim_prefix(path).to_string_lossy().into_owned()
+}
+
 fn key(path: &Path) -> String {
     let n = normalize_path(path).unwrap_or_else(|_| path.to_path_buf());
-    n.to_string_lossy().to_lowercase()
+    strip_verbatim_prefix(&n).to_string_lossy().to_lowercase()
 }
 
 pub fn paths_equal(a: &Path, b: &Path) -> bool {
@@ -172,5 +176,19 @@ mod tests {
         let a = std::path::Path::new(r"C:\Videos\Foo.mp4");
         let b = std::path::Path::new(r"c:\videos\foo.mp4");
         assert!(paths_equal(a, b));
+    }
+
+    #[test]
+    fn key_and_prefix_strip_verbatim() {
+        let prefix = Path::new(r"\\?\C:\Videos");
+        let nested = Path::new(r"C:\Videos\foo.mp4");
+        assert_eq!(key(prefix), r"c:\videos");
+        assert!(is_path_prefix(prefix, nested));
+        let unc = Path::new(r"\\?\UNC\server\share\Videos");
+        assert_eq!(key(unc), r"\\server\share\videos");
+        assert_eq!(
+            display_path(Path::new(r"\\?\C:\Videos\a.mp4")),
+            r"C:\Videos\a.mp4"
+        );
     }
 }

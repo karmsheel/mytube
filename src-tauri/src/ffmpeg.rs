@@ -1,23 +1,39 @@
 use std::path::Path;
 use std::process::Command;
+use std::sync::OnceLock;
+
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+fn command(bin: &str) -> Command {
+    let mut cmd = Command::new(bin);
+    // Avoid a console flash when spawning ffmpeg on Windows.
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+    cmd
+}
 
 pub struct Ffmpeg {
     bin: String,
 }
 
 impl Ffmpeg {
-    pub fn detect() -> Option<Self> {
-        let bin = "ffmpeg";
-        let ok = Command::new(bin).arg("-version").output().ok()?.status.success();
-        if ok {
-            Some(Self { bin: bin.into() })
-        } else {
-            None
-        }
+    pub fn detect() -> Option<&'static Self> {
+        static DETECTED: OnceLock<Option<Ffmpeg>> = OnceLock::new();
+        DETECTED
+            .get_or_init(|| {
+                let bin = "ffmpeg";
+                let ok = command(bin).arg("-version").output().ok()?.status.success();
+                ok.then(|| Self { bin: bin.into() })
+            })
+            .as_ref()
     }
 
     pub fn duration(&self, video: &Path) -> Option<f64> {
-        let out = Command::new(&self.bin)
+        let out = command(&self.bin)
             .args(["-i"])
             .arg(video)
             .output()
@@ -34,7 +50,7 @@ impl Ffmpeg {
         if let Some(dir) = dest.parent() {
             let _ = std::fs::create_dir_all(dir);
         }
-        Command::new(&self.bin)
+        command(&self.bin)
             .args(["-y", "-ss", "1", "-i"])
             .arg(video)
             .args(["-frames:v", "1", "-q:v", "4"])

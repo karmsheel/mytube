@@ -3,6 +3,7 @@ use crate::catalog::{
 };
 use crate::db::now_iso;
 use crate::error::AppResult;
+use crate::ffmpeg::Ffmpeg;
 use crate::metadata::{is_video_file, resolve};
 use crate::models::ScanStats;
 use crate::pathutil::normalize_path;
@@ -17,6 +18,7 @@ pub fn scan_source(conn: &Connection, source_id: i64, thumbs_dir: &Path) -> AppR
         set_source_available(conn, source_id, false, None)?;
         return Ok(ScanStats::default());
     }
+    let ffmpeg = Ffmpeg::detect();
     let mut stats = ScanStats::default();
     let mut keep = Vec::new();
     for entry in WalkDir::new(root).follow_links(false) {
@@ -35,7 +37,7 @@ pub fn scan_source(conn: &Connection, source_id: i64, thumbs_dir: &Path) -> AppR
             continue;
         }
         let norm = normalize_path(path).unwrap_or_else(|_| path.to_path_buf());
-        let meta = resolve(&norm, root, thumbs_dir);
+        let meta = resolve(&norm, root, thumbs_dir, ffmpeg);
         let parent = norm
             .parent()
             .unwrap_or(root)
@@ -49,11 +51,17 @@ pub fn scan_source(conn: &Connection, source_id: i64, thumbs_dir: &Path) -> AppR
             .map(|d| d.as_secs() as i64)
             .unwrap_or(0);
         let size = file_meta.map(|m| m.len() as i64).unwrap_or(0);
-        let out = upsert_video(conn, source_id, &norm, &meta, &parent, mtime, size)?;
-        if out.created {
-            stats.imported += 1;
-        } else {
-            stats.updated += 1;
+        match upsert_video(conn, source_id, &norm, &meta, &parent, mtime, size) {
+            Ok(out) => {
+                if out.created {
+                    stats.imported += 1;
+                } else {
+                    stats.updated += 1;
+                }
+            }
+            Err(_) => {
+                stats.skipped_dirs += 1;
+            }
         }
         keep.push(norm.to_string_lossy().into_owned());
     }

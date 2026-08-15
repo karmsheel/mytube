@@ -2,7 +2,7 @@ use crate::db::{now_iso, MORE_SIZE, PAGE_SIZE};
 use crate::error::{AppError, AppResult};
 use crate::metadata::ResolvedMeta;
 use crate::models::{Channel, Page, Source, VideoCard, VideoDetail};
-use crate::pathutil::{normalize_path, paths_equal, source_overlap};
+use crate::pathutil::{display_path, normalize_path, paths_equal, source_overlap};
 use crate::slug::channel_slug;
 use rusqlite::{params, Connection, OptionalExtension};
 use std::path::Path;
@@ -238,7 +238,7 @@ fn row_card(r: &rusqlite::Row) -> rusqlite::Result<VideoCard> {
         channel_name: r.get(2)?,
         channel_slug: r.get(3)?,
         duration_sec: r.get(4)?,
-        thumbnail_path: r.get(5)?,
+        thumbnail_path: r.get::<_, Option<String>>(5)?.map(|p| display_path(Path::new(&p))),
         upload_date: r.get(6)?,
     })
 }
@@ -374,7 +374,7 @@ pub fn get_video(conn: &Connection, id: i64) -> AppResult<VideoDetail> {
                 parent_dir: r.get(7)?,
                 description: r.get(8)?,
                 duration_sec: r.get(9)?,
-                thumbnail_path: r.get(10)?,
+                thumbnail_path: r.get::<_, Option<String>>(10)?.map(|p| display_path(Path::new(&p))),
                 upload_date: r.get(11)?,
                 progress_sec: r.get(12)?,
             })

@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { api } from "./api";
 import { Shell } from "./components/Shell";
+import { LibraryProvider, useLibrary } from "./lib/library";
 import { HomePage } from "./pages/HomePage";
 import { HistoryPage } from "./pages/HistoryPage";
 import { ChannelsPage } from "./pages/ChannelsPage";
@@ -10,7 +11,18 @@ import { WatchPage } from "./pages/WatchPage";
 import { LibraryPage } from "./pages/LibraryPage";
 
 export default function App() {
-  useEffect(() => { api.rescan().catch(() => {}); }, []);
+  return (
+    <LibraryProvider>
+      <AppInner />
+    </LibraryProvider>
+  );
+}
+
+function AppInner() {
+  const { bump } = useLibrary();
+  useEffect(() => {
+    api.rescan().then(() => bump()).catch(() => {});
+  }, [bump]);
   return (
     <BrowserRouter>
       <Routes>
