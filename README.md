@@ -2,7 +2,8 @@
 
 Local video library. Add folders, browse, watch. No ads, no algorithm, no network.
 
-**Version:** 0.1.0
+**Version:** 0.1.0  
+**License:** [MIT](LICENSE)
 
 ## Install (Windows)
 
