@@ -12,7 +12,8 @@ export function Shell() {
         <nav className="nav">
           <NavLink to="/" end>Home</NavLink>
           <NavLink to="/history">History</NavLink>
-          <NavLink to="/channels">Channels</NavLink>
+          <NavLink to="/folders">Folders</NavLink>
+          <NavLink to="/playlists">Playlists</NavLink>
         </nav>
         <nav className="nav-bottom">
           <NavLink to="/library">Library</NavLink>

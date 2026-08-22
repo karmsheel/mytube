@@ -6,6 +6,7 @@ pub mod ffmpeg;
 pub mod metadata;
 pub mod models;
 pub mod pathutil;
+pub mod playlists;
 pub mod resume;
 pub mod scan;
 pub mod slug;
@@ -53,6 +54,12 @@ pub fn run() {
             commands::set_progress,
             commands::start_watch,
             commands::list_history,
+            commands::list_playlists,
+            commands::create_playlist,
+            commands::delete_playlist,
+            commands::get_playlist,
+            commands::add_to_playlist,
+            commands::remove_from_playlist,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

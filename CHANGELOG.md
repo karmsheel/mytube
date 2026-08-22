@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2 — 2026-08-22
+
+- Rename sidebar **Channels** to **Folders**
+- Add **Playlists**: create playlists, save videos from the watch page, remove videos, delete playlists
+
 ## 0.1.1 — 2026-08-22
 
 Faster startup for the portable/installed app.

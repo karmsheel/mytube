@@ -20,7 +20,7 @@ export function ChannelPage() {
       setItems(r.videos.items);
       setTotal(r.videos.total);
       setPage(0);
-    }).catch(() => setErr("Channel not found"));
+    }).catch(() => setErr("Folder not found"));
   }, [slug, epoch]);
   if (err) return <p>{err}</p>;
   if (!ch) return <p>Loading…</p>;

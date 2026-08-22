@@ -95,6 +95,19 @@ pub fn migrate(conn: &Connection) -> AppResult<()> {
         CREATE INDEX IF NOT EXISTS idx_videos_dates ON videos(upload_date, mtime);
         CREATE INDEX IF NOT EXISTS idx_videos_title ON videos(title);
         CREATE INDEX IF NOT EXISTS idx_history_watched ON watch_history(watched_at);
+        CREATE TABLE IF NOT EXISTS playlists (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS playlist_items (
+            playlist_id INTEGER NOT NULL REFERENCES playlists(id) ON DELETE CASCADE,
+            video_id INTEGER NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
+            position INTEGER NOT NULL,
+            added_at TEXT NOT NULL,
+            PRIMARY KEY (playlist_id, video_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_playlist_items_pl ON playlist_items(playlist_id, position);
         "#,
     )?;
     Ok(())
@@ -111,12 +124,12 @@ mod tests {
         migrate(&conn).unwrap();
         let n: i64 = conn
             .query_row(
-                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name IN ('sources','channels','videos','watch_progress','watch_history')",
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name IN ('sources','channels','videos','watch_progress','watch_history','playlists','playlist_items')",
                 [],
                 |r| r.get(0),
             )
             .unwrap();
-        assert_eq!(n, 5);
+        assert_eq!(n, 7);
 
         conn.execute(
             "INSERT INTO sources (path, added_at) VALUES ('C:\\v', 't')",

@@ -58,6 +58,15 @@ pub struct Page<T: Serialize> {
     pub total: i64,
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Playlist {
+    pub id: i64,
+    pub name: String,
+    pub created_at: String,
+    pub video_count: i64,
+}
+
 #[derive(Debug, Clone, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ScanStats {

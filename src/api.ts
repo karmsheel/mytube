@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Channel, Page, ScanStats, Source, VideoCard, VideoDetail } from "./types";
+import type { Channel, Page, Playlist, ScanStats, Source, VideoCard, VideoDetail } from "./types";
 
 export const api = {
   pickFolder: () => invoke<string | null>("pick_folder"),
@@ -24,4 +24,13 @@ export const api = {
     invoke<void>("set_progress", { id, positionSec }),
   startWatch: (id: number) => invoke<void>("start_watch", { id }),
   listHistory: (page: number) => invoke<Page<VideoCard>>("list_history", { page }),
+  listPlaylists: () => invoke<Playlist[]>("list_playlists"),
+  createPlaylist: (name: string) => invoke<Playlist>("create_playlist", { name }),
+  deletePlaylist: (id: number) => invoke<void>("delete_playlist", { id }),
+  getPlaylist: (id: number, page: number) =>
+    invoke<{ playlist: Playlist; videos: Page<VideoCard> }>("get_playlist", { id, page }),
+  addToPlaylist: (playlistId: number, videoId: number) =>
+    invoke<Playlist>("add_to_playlist", { playlistId, videoId }),
+  removeFromPlaylist: (playlistId: number, videoId: number) =>
+    invoke<Playlist>("remove_from_playlist", { playlistId, videoId }),
 };

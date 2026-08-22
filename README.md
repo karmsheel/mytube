@@ -2,7 +2,7 @@
 
 Local video library. Add folders, browse, watch. No ads, no algorithm, no network.
 
-**Version:** 0.1.1  
+**Version:** 0.1.2  
 **License:** [MIT](LICENSE)
 
 ## Install (Windows)
@@ -16,7 +16,7 @@ Local video library. Add folders, browse, watch. No ads, no algorithm, no networ
 
 2. Run the installer:
 
-   `src-tauri\target\release\bundle\nsis\Mytube_0.1.1_x64-setup.exe`
+   `src-tauri\target\release\bundle\nsis\Mytube_0.1.2_x64-setup.exe`
 
    Or run the portable exe:
 

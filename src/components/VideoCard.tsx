@@ -16,7 +16,7 @@ export function VideoCard({ video }: { video: Card }) {
         <h3 className="card-title">{video.title}</h3>
       </Link>
       {video.channelSlug && video.channelName ? (
-        <Link className="card-channel" to={`/channel/${video.channelSlug}`}>{video.channelName}</Link>
+        <Link className="card-channel" to={`/folder/${video.channelSlug}`}>{video.channelName}</Link>
       ) : video.channelName ? (
         <div className="card-channel">{video.channelName}</div>
       ) : null}

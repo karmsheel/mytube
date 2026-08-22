@@ -1,6 +1,7 @@
 use crate::catalog;
 use crate::error::{AppError, AppResult};
-use crate::models::{Channel, Page, ScanStats, Source, VideoCard, VideoDetail};
+use crate::models::{Channel, Page, Playlist, ScanStats, Source, VideoCard, VideoDetail};
+use crate::playlists;
 use crate::scan::{apply_source_scan, plan_source_scan};
 use rusqlite::Connection;
 use serde::Serialize;
@@ -179,4 +180,60 @@ pub async fn start_watch(state: State<'_, AppState>, id: i64) -> AppResult<()> {
 pub async fn list_history(state: State<'_, AppState>, page: i64) -> AppResult<Page<VideoCard>> {
     let db = lock(&state)?;
     catalog::list_history(&db, page)
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlaylistPage {
+    pub playlist: Playlist,
+    pub videos: Page<VideoCard>,
+}
+
+#[tauri::command]
+pub async fn list_playlists(state: State<'_, AppState>) -> AppResult<Vec<Playlist>> {
+    let db = lock(&state)?;
+    playlists::list_playlists(&db)
+}
+
+#[tauri::command]
+pub async fn create_playlist(state: State<'_, AppState>, name: String) -> AppResult<Playlist> {
+    let db = lock(&state)?;
+    playlists::create_playlist(&db, &name)
+}
+
+#[tauri::command]
+pub async fn delete_playlist(state: State<'_, AppState>, id: i64) -> AppResult<()> {
+    let db = lock(&state)?;
+    playlists::delete_playlist(&db, id)
+}
+
+#[tauri::command]
+pub async fn get_playlist(
+    state: State<'_, AppState>,
+    id: i64,
+    page: i64,
+) -> AppResult<PlaylistPage> {
+    let db = lock(&state)?;
+    let (playlist, videos) = playlists::get_playlist(&db, id, page)?;
+    Ok(PlaylistPage { playlist, videos })
+}
+
+#[tauri::command]
+pub async fn add_to_playlist(
+    state: State<'_, AppState>,
+    playlist_id: i64,
+    video_id: i64,
+) -> AppResult<Playlist> {
+    let db = lock(&state)?;
+    playlists::add_to_playlist(&db, playlist_id, video_id)
+}
+
+#[tauri::command]
+pub async fn remove_from_playlist(
+    state: State<'_, AppState>,
+    playlist_id: i64,
+    video_id: i64,
+) -> AppResult<Playlist> {
+    let db = lock(&state)?;
+    playlists::remove_from_playlist(&db, playlist_id, video_id)
 }

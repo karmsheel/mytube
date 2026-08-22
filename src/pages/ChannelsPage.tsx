@@ -10,9 +10,10 @@ export function ChannelsPage() {
   useEffect(() => { api.listChannels().then(setRows); }, [epoch]);
   return (
     <div>
-      <h1>Channels</h1>
+      <h1>Folders</h1>
+      {rows.length === 0 && <p className="badge">No folders yet. Add a library source with subfolders or sidecar channel names.</p>}
       {rows.map((c) => (
-        <p key={c.id}><Link to={`/channel/${c.slug}`}>{c.name}</Link> <span className="badge">{c.videoCount}</span></p>
+        <p key={c.id}><Link to={`/folder/${c.slug}`}>{c.name}</Link> <span className="badge">{c.videoCount}</span></p>
       ))}
     </div>
   );

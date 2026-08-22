@@ -39,6 +39,13 @@ export type Page<T> = {
   total: number;
 };
 
+export type Playlist = {
+  id: number;
+  name: string;
+  createdAt: string;
+  videoCount: number;
+};
+
 export type ScanStats = {
   imported: number;
   updated: number;
