@@ -63,9 +63,18 @@ pub fn display_path(path: &Path) -> String {
     strip_verbatim_prefix(path).to_string_lossy().into_owned()
 }
 
+/// Fast identity key: no disk I/O (no canonicalize). Used to match walk
+/// paths against stored catalog paths during incremental scan.
+pub fn path_key(path: &Path) -> String {
+    strip_verbatim_prefix(path)
+        .to_string_lossy()
+        .replace('/', "\\")
+        .to_lowercase()
+}
+
 fn key(path: &Path) -> String {
     let n = normalize_path(path).unwrap_or_else(|_| path.to_path_buf());
-    strip_verbatim_prefix(&n).to_string_lossy().to_lowercase()
+    path_key(&n)
 }
 
 pub fn paths_equal(a: &Path, b: &Path) -> bool {

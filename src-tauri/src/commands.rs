@@ -1,10 +1,10 @@
 use crate::catalog;
 use crate::error::{AppError, AppResult};
 use crate::models::{Channel, Page, ScanStats, Source, VideoCard, VideoDetail};
-use crate::scan::{rescan_all, scan_source};
+use crate::scan::{apply_source_scan, plan_source_scan};
 use rusqlite::Connection;
 use serde::Serialize;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use tauri::{AppHandle, Manager, State};
 use tauri_plugin_dialog::DialogExt;
@@ -46,60 +46,96 @@ pub fn pick_folder(app: AppHandle) -> Option<String> {
 }
 
 #[tauri::command]
-pub fn add_source(app: AppHandle, state: State<AppState>, path: String) -> AppResult<AddSourceResult> {
-    let db = lock(&state)?;
-    let source = catalog::add_source(&db, path.as_ref())?;
-    let stats = scan_source(&db, source.id, &state.thumbs_dir)?;
-    drop(db);
+pub async fn add_source(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    path: String,
+) -> AppResult<AddSourceResult> {
+    let source = {
+        let db = lock(&state)?;
+        catalog::add_source(&db, path.as_ref())?
+    };
+    let stats = scan_source_releasing(&state, source.id)?;
     allow_dir(&app, &source.path);
     Ok(AddSourceResult { source, stats })
 }
 
 #[tauri::command]
-pub fn remove_source(state: State<AppState>, id: i64) -> AppResult<()> {
+pub async fn remove_source(state: State<'_, AppState>, id: i64) -> AppResult<()> {
     let db = lock(&state)?;
     catalog::remove_source(&db, id)
 }
 
 #[tauri::command]
-pub fn list_sources(state: State<AppState>) -> AppResult<Vec<Source>> {
+pub async fn list_sources(state: State<'_, AppState>) -> AppResult<Vec<Source>> {
     let db = lock(&state)?;
     catalog::list_sources(&db)
 }
 
-#[tauri::command]
-pub fn rescan(state: State<AppState>) -> AppResult<ScanStats> {
-    let db = lock(&state)?;
-    rescan_all(&db, &state.thumbs_dir)
+fn scan_source_releasing(state: &AppState, source_id: i64) -> AppResult<ScanStats> {
+    let (root, fps) = {
+        let db = lock(state)?;
+        let src = catalog::get_source(&db, source_id)?;
+        let fps = catalog::source_fingerprints(&db, source_id)?;
+        (src.path, fps)
+    };
+    let plan = plan_source_scan(Path::new(&root), &fps, &state.thumbs_dir);
+    let db = lock(state)?;
+    apply_source_scan(&db, source_id, plan)
 }
 
 #[tauri::command]
-pub fn list_home(state: State<AppState>, page: i64) -> AppResult<Page<VideoCard>> {
+pub async fn rescan(state: State<'_, AppState>) -> AppResult<ScanStats> {
+    let sources = {
+        let db = lock(&state)?;
+        catalog::list_sources(&db)?
+    };
+    let mut total = ScanStats::default();
+    for src in sources {
+        let s = scan_source_releasing(&state, src.id)?;
+        total.imported += s.imported;
+        total.updated += s.updated;
+        total.removed += s.removed;
+        total.skipped_dirs += s.skipped_dirs;
+    }
+    Ok(total)
+}
+
+#[tauri::command]
+pub async fn list_home(state: State<'_, AppState>, page: i64) -> AppResult<Page<VideoCard>> {
     let db = lock(&state)?;
     catalog::list_home(&db, page)
 }
 
 #[tauri::command]
-pub fn search(state: State<AppState>, query: String, page: i64) -> AppResult<Page<VideoCard>> {
+pub async fn search(
+    state: State<'_, AppState>,
+    query: String,
+    page: i64,
+) -> AppResult<Page<VideoCard>> {
     let db = lock(&state)?;
     catalog::search(&db, &query, page)
 }
 
 #[tauri::command]
-pub fn list_channels(state: State<AppState>) -> AppResult<Vec<Channel>> {
+pub async fn list_channels(state: State<'_, AppState>) -> AppResult<Vec<Channel>> {
     let db = lock(&state)?;
     catalog::list_channels(&db)
 }
 
 #[tauri::command]
-pub fn get_channel(state: State<AppState>, slug: String, page: i64) -> AppResult<ChannelPage> {
+pub async fn get_channel(
+    state: State<'_, AppState>,
+    slug: String,
+    page: i64,
+) -> AppResult<ChannelPage> {
     let db = lock(&state)?;
     let (channel, videos) = catalog::get_channel(&db, &slug, page)?;
     Ok(ChannelPage { channel, videos })
 }
 
 #[tauri::command]
-pub fn get_video(state: State<AppState>, id: i64) -> AppResult<VideoDetail> {
+pub async fn get_video(state: State<'_, AppState>, id: i64) -> AppResult<VideoDetail> {
     let db = lock(&state)?;
     let mut v = catalog::get_video(&db, id)?;
     v.path = crate::pathutil::display_path(std::path::Path::new(&v.path));
@@ -107,13 +143,13 @@ pub fn get_video(state: State<AppState>, id: i64) -> AppResult<VideoDetail> {
 }
 
 #[tauri::command]
-pub fn list_more(state: State<AppState>, video_id: i64) -> AppResult<Vec<VideoCard>> {
+pub async fn list_more(state: State<'_, AppState>, video_id: i64) -> AppResult<Vec<VideoCard>> {
     let db = lock(&state)?;
     catalog::list_more(&db, video_id)
 }
 
 #[tauri::command]
-pub fn video_url(state: State<AppState>, id: i64) -> AppResult<String> {
+pub async fn video_url(state: State<'_, AppState>, id: i64) -> AppResult<String> {
     let db = lock(&state)?;
     let v = catalog::get_video(&db, id)?;
     let p = std::path::Path::new(&v.path);
@@ -124,19 +160,23 @@ pub fn video_url(state: State<AppState>, id: i64) -> AppResult<String> {
 }
 
 #[tauri::command]
-pub fn set_progress(state: State<AppState>, id: i64, position_sec: f64) -> AppResult<()> {
+pub async fn set_progress(
+    state: State<'_, AppState>,
+    id: i64,
+    position_sec: f64,
+) -> AppResult<()> {
     let db = lock(&state)?;
     catalog::set_progress(&db, id, position_sec)
 }
 
 #[tauri::command]
-pub fn start_watch(state: State<AppState>, id: i64) -> AppResult<()> {
+pub async fn start_watch(state: State<'_, AppState>, id: i64) -> AppResult<()> {
     let db = lock(&state)?;
     catalog::start_watch(&db, id)
 }
 
 #[tauri::command]
-pub fn list_history(state: State<AppState>, page: i64) -> AppResult<Page<VideoCard>> {
+pub async fn list_history(state: State<'_, AppState>, page: i64) -> AppResult<Page<VideoCard>> {
     let db = lock(&state)?;
     catalog::list_history(&db, page)
 }

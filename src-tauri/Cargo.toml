@@ -1,6 +1,6 @@
 [package]
 name = "mytube"
-version = "0.1.0"
+version = "0.1.1"
 description = "Mytube — local video library, no ads or algorithm"
 authors = ["karms"]
 edition = "2021"

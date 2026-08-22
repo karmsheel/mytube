@@ -43,6 +43,9 @@ pub fn open(path: &Path) -> AppResult<Connection> {
     }
     let conn = Connection::open(path)?;
     conn.pragma_update(None, "foreign_keys", 1)?;
+    let _ = conn.pragma_update(None, "journal_mode", "WAL");
+    let _ = conn.pragma_update(None, "synchronous", "NORMAL");
+    let _ = conn.busy_timeout(std::time::Duration::from_millis(5000));
     migrate(&conn)?;
     Ok(conn)
 }

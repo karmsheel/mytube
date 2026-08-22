@@ -2,9 +2,10 @@ use crate::db::{now_iso, MORE_SIZE, PAGE_SIZE};
 use crate::error::{AppError, AppResult};
 use crate::metadata::ResolvedMeta;
 use crate::models::{Channel, Page, Source, VideoCard, VideoDetail};
-use crate::pathutil::{display_path, normalize_path, paths_equal, source_overlap};
+use crate::pathutil::{display_path, normalize_path, path_key, paths_equal, source_overlap};
 use crate::slug::channel_slug;
 use rusqlite::{params, Connection, OptionalExtension};
+use std::collections::HashMap;
 use std::path::Path;
 
 pub struct UpsertOutcome {
@@ -92,6 +93,29 @@ fn get_or_create_channel(conn: &Connection, name: &str) -> AppResult<i64> {
         |r| r.get(0),
     )?;
     Ok(id)
+}
+
+/// path_key -> (stored path, mtime, size_bytes)
+pub fn source_fingerprints(
+    conn: &Connection,
+    source_id: i64,
+) -> AppResult<HashMap<String, (String, i64, i64)>> {
+    let mut stmt = conn.prepare(
+        "SELECT path, mtime, size_bytes FROM videos WHERE source_id = ?1",
+    )?;
+    let rows = stmt.query_map([source_id], |r| {
+        Ok((
+            r.get::<_, String>(0)?,
+            r.get::<_, i64>(1)?,
+            r.get::<_, i64>(2)?,
+        ))
+    })?;
+    let mut map = HashMap::new();
+    for row in rows {
+        let (path, mtime, size) = row?;
+        map.insert(path_key(Path::new(&path)), (path, mtime, size));
+    }
+    Ok(map)
 }
 
 fn find_video(conn: &Connection, path: &Path) -> AppResult<Option<(i64, i64)>> {

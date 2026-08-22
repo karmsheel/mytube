@@ -21,7 +21,10 @@ export default function App() {
 function AppInner() {
   const { bump } = useLibrary();
   useEffect(() => {
-    api.rescan().then(() => bump()).catch(() => {});
+    const id = window.setTimeout(() => {
+      api.rescan().then(() => bump()).catch(() => {});
+    }, 50);
+    return () => window.clearTimeout(id);
   }, [bump]);
   return (
     <BrowserRouter>

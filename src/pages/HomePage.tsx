@@ -18,7 +18,6 @@ export function HomePage() {
   const [err, setErr] = useState<string | null>(null);
   useEffect(() => {
     let cancel = false;
-    setReady(false);
     setErr(null);
     (async () => {
       try {
